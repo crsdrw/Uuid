@@ -58,6 +58,7 @@ void testGenerate() {
 
 void testGenerateUsingGenerator() {
   auto uuid_generator = urn::RandomUuidGenerator();
+  auto uuid = uuid_generator();
   assert(uuid != Uuid{ 0 } && "Expecting new UUID to be non-zero");
   std::cout << "PASS: testGenerate\n";
 }
