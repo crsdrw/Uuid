@@ -19,8 +19,11 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-// Provides an implementation of Universally Unique Identifier (UUID).
-// Only generates version 4 UUIDs as specified in RFC 4122.
+// Provides an implementation of Universally Unique Identifier (UUID). 
+// Generates version 4 UUIDs as specified in RFC 4122. 
+// Parse UUIDs from string. 
+// Provides hash so that UUID can be used in the standard library associative containers.
+// Easily convertible to boost uuid.
 
 #pragma once
 #define _SCL_SECURE_NO_WARNINGS
