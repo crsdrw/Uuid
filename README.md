@@ -8,7 +8,7 @@ Easily convertible to boost uuid.
 
 ## Installing
 
-Just copy [Uuid.h](Uuid.h) into your project.
+Just copy [Uuid.h](Uuid/Uuid.h) into your project.
 
 ## Usage
 
