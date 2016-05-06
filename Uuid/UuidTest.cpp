@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <iostream>
+#include <unordered_set>
+#include <chrono>
 
 using namespace urn;
 
@@ -54,10 +56,97 @@ void testGenerate() {
   std::cout << "PASS: testGenerate\n";
 }
 
-int main() {
+void testGenerateUsingGenerator() {
+  auto uuid_generator = urn::RandomUuidGenerator();
+  assert(uuid != Uuid{ 0 } && "Expecting new UUID to be non-zero");
+  std::cout << "PASS: testGenerate\n";
+}
+
+auto expected = Uuid{ 0x69, 0x53, 0x8a, 0x3f, 0xc0, 0x7a, 0x4b, 0xe1, 0x87, 0x05, 0xfc, 0xc2, 0x01, 0xbd, 0x67, 0x3b };
+
+void testConvertCString() {
+  auto string = "69538a3f-c07a-4be1-8705-fcc201bd673b";
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertCString\n";
+}
+
+void testConvertString() {
+  using namespace std::string_literals;
+  auto string = "69538a3f-c07a-4be1-8705-fcc201bd673b"s;
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertString\n";
+}
+
+void testConvertStringNoDash() {
+  using namespace std::string_literals;
+  auto string = "69538a3fc07a4be18705fcc201bd673b"s;
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertStringNoDash\n";
+}
+
+void testConvertStringBraced() {
+  using namespace std::string_literals;
+  auto string = "{69538a3f-c07a-4be1-8705-fcc201bd673b}"s;
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertStringBraced\n";
+}
+
+void testConvertStringBracedNoDash() {
+  using namespace std::string_literals;
+  auto string = "{69538a3fc07a4be18705fcc201bd673b}"s;
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertStringBracedNoDash\n";
+}
+
+void testConvertStringWithPrefix() {
+  using namespace std::string_literals;
+  auto string = "urn:uuid:69538a3f-c07a-4be1-8705-fcc201bd673b"s;
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertStringWithPrefix\n";
+}
+
+void testGenerateAndHash() {
+  std::unordered_set<Uuid> generated;
+
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i != 10'000'000; ++i) {
+    auto uuid = newUuid();
+    auto insert_result = generated.insert(uuid);
+    assert(insert_result.second);
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<float> dur = end - start;
+  std::cout << "PASS: testGenerateAndHash in " << dur.count() << "\n";
+}
+
+void runPerformanceTests() {
+  std::cout << "Press any key to start performance tests...\n";
+  std::cin.ignore();
+  testGenerateAndHash();
+}
+
+int main(int argc, char* argv[]) {
   testThatZeroUuidIsZero();
   testThatTwoZeroUuidsAreEqual();
   testNonEquality();
   testHash<sizeof(std::size_t)>();
   testGenerate();
+  testConvertCString();
+  testConvertString();
+  testConvertStringNoDash();
+  testConvertStringBraced();
+  testConvertStringWithPrefix();
+
+  if (argc > 1) {
+    std::string option = argv[1];
+    if (option == "-p" || option == "--performance") {
+      runPerformanceTests();
+    }
+  }
 }

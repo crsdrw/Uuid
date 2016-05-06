@@ -1,14 +1,43 @@
+// Copyright (C) 2016 by Chris Drew
+//
+// Permission is hereby granted, free of charge, to any person obtaining
+// a copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to
+// permit persons to whom the Software is furnished to do so, subject to
+// the following conditions:
+//
+// The above copyright notice and this permission notice shall be
+// included in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+// EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+// LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// Provides an implementation of Universally Unique Identifier (UUID).
+// Only generates version 4 UUIDs as specified in RFC 4122.
+
 #pragma once
+#define _SCL_SECURE_NO_WARNINGS
 
 #include <array>
 #include <random>
+#include <string>
+#include <algorithm>
+#include <functional>
+#include <cstring>
 
 namespace urn {
   using Uuid = std::array<uint8_t, 16>;
 }
 
 namespace details {
-  constexpr std::size_t SEED_LENGTH = 8;
+  const std::size_t SEED_LENGTH = 8;
 
   std::array<uint_fast32_t, SEED_LENGTH> generateSeedData() {
     std::array<uint_fast32_t, SEED_LENGTH> random_data;
@@ -33,26 +62,99 @@ namespace details {
     uuid[8] |= 0x80;
   }
 
-  template<int> std::size_t hashImpl(const urn::Uuid& value);
+  template<int> std::size_t hash(const urn::Uuid& value);
 
-  template<> std::size_t hashImpl<4>(const urn::Uuid& value) {
+  template<> std::size_t hash<4>(const urn::Uuid& value) {
     // FNV-1a hash for 32bit size_t
     // http://www.isthe.com/chongo/tech/comp/fnv/#FNV-1a
-    std::size_t hash = 2166136261;
-    constexpr std::size_t p = 16777619;
+    uint32_t hash = 2166136261ul;
+    static const uint32_t p = 16777619ul;
     for (auto byte : value)
       hash = (hash ^ byte) * p;
-    return hash;
+    return static_cast<std::size_t>(hash);
   }
 
-  template<> size_t hashImpl<8>(const urn::Uuid& value) {
+  template<> std::size_t hash<8>(const urn::Uuid& value) {
     // FNV-1a hash for 64bit size_t
     // http://www.isthe.com/chongo/tech/comp/fnv/#FNV-1a
-    std::size_t hash = 14695981039346656037;
-    constexpr std::size_t p = 1099511628211;
+    uint64_t hash = 14695981039346656037ull;
+    static const uint64_t p = 1099511628211ull;
     for (auto byte : value)
       hash = (hash ^ byte) * p;
-    return hash;
+    return static_cast<std::size_t>(hash);
+  }
+
+  const char* urn_prefix = "urn:uuid:";
+  const std::size_t urn_prefix_size = 9;
+
+  uint8_t hexCharToInt(char c) {
+    switch (c) {
+    case '0': return 0;
+    case '1': return 1;
+    case '2': return 2;
+    case '3': return 3;
+    case '4': return 4;
+    case '5': return 5;
+    case '6': return 6;
+    case '7': return 7;
+    case '8': return 8;
+    case '9': return 9;
+    case 'a': case 'A': return 10;
+    case 'b': case 'B': return 11;
+    case 'c': case 'C': return 12;
+    case 'd': case 'D': return 13;
+    case 'e': case 'E': return 14;
+    case 'f': case 'F': return 15;
+    default: throw std::invalid_argument("Error parsing UUID string");
+    }
+  }
+
+  uint8_t toUuidByte(const char *& itr) {
+    uint8_t byte = hexCharToInt(*itr++);
+    byte <<= 4;
+    byte |= hexCharToInt(*itr++);
+    return byte;
+  }
+
+  void skipAnyDash(const char*& itr) {
+    if (*itr == '-')
+      ++itr;
+  }
+
+  urn::Uuid toUuid(const char* itr, const char* end) {
+    urn::Uuid uuid;
+
+    if (std::distance(itr, end) < 32)
+      throw std::invalid_argument("Error parsing UUID string");
+
+    if (std::equal(itr, itr + urn_prefix_size, urn_prefix))
+      itr += urn_prefix_size;
+
+    if (*itr == '{')
+      ++itr;
+
+    uuid[0] = toUuidByte(itr);
+    uuid[1] = toUuidByte(itr);
+    uuid[2] = toUuidByte(itr);
+    uuid[3] = toUuidByte(itr);
+    skipAnyDash(itr);
+    uuid[4] = toUuidByte(itr);
+    uuid[5] = toUuidByte(itr);
+    skipAnyDash(itr);
+    uuid[6] = toUuidByte(itr);
+    uuid[7] = toUuidByte(itr);
+    skipAnyDash(itr);
+    uuid[8] = toUuidByte(itr);
+    uuid[9] = toUuidByte(itr);
+    skipAnyDash(itr);
+
+    if (std::distance(itr, end) < 12)
+      throw std::invalid_argument("Error parsing UUID string");
+
+    for (urn::Uuid::size_type i = 10; i != 16; ++i)
+      uuid[i] = toUuidByte(itr);
+
+    return uuid;
   }
 }  // namespace details
 
@@ -82,13 +184,21 @@ namespace urn {
     thread_local RandomUuidGenerator generator;
     return generator();
   }
+
+  Uuid to_uuid(const std::string& string) {
+    return details::toUuid(string.data(), string.data() + string.size());
+  }
+
+  Uuid to_uuid(const char* string) {
+    return details::toUuid(string, string + std::strlen(string));
+  }
 }  // namespace urn
 
 namespace std {
   template <>
   struct hash<urn::Uuid> {
     std::size_t operator()(const urn::Uuid& value) const {
-      return details::hashImpl<sizeof(std::size_t)>(value);
+      return details::hash<sizeof(std::size_t)>(value);
     }
   };
 }
