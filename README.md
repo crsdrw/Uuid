@@ -12,6 +12,17 @@ Just copy [Uuid.h](Uuid.h) into your project.
 
 ## Usage
 
+### Definition ###
+
+`urn::Uuid` is defined simply as:
+```
+namespace urn {
+  using Uuid = std::array<uint8_t, 16>;
+}
+```
+so that it all the functionality of `std::array` 
+like comparison and equality operators are available. 
+
 ### Generating random UUIDs
 
 To generate a new UUID (version 4):
