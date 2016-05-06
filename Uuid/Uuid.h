@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <functional>
 #include <cstring>
+#include <cwchar>
 
 namespace urn {
   using Uuid = std::array<uint8_t, 16>;
@@ -90,7 +91,8 @@ namespace details {
   const char* urn_prefix = "urn:uuid:";
   const std::size_t urn_prefix_size = 9;
 
-  uint8_t hexCharToInt(char c) {
+  template<typename Char>
+  uint8_t hexCharToInt(Char c) {
     switch (c) {
     case '0': return 0;
     case '1': return 1;
@@ -112,19 +114,22 @@ namespace details {
     }
   }
 
-  uint8_t toUuidByte(const char *& itr) {
+  template<typename CharPtr>
+  uint8_t toUuidByte(CharPtr& itr) {
     uint8_t byte = hexCharToInt(*itr++);
     byte <<= 4;
     byte |= hexCharToInt(*itr++);
     return byte;
   }
 
-  void skipAnyDash(const char*& itr) {
+  template<typename CharPtr>
+  void skipAnyDash(CharPtr& itr) {
     if (*itr == '-')
       ++itr;
   }
 
-  urn::Uuid toUuid(const char* itr, const char* end) {
+  template<typename CharPtr>
+  urn::Uuid toUuid(CharPtr itr, CharPtr end) {
     urn::Uuid uuid;
 
     if (std::distance(itr, end) < 32)
@@ -194,6 +199,14 @@ namespace urn {
 
   Uuid to_uuid(const char* string) {
     return details::toUuid(string, string + std::strlen(string));
+  }
+
+  Uuid to_uuid(const std::wstring& string) {
+    return details::toUuid(string.data(), string.data() + string.size());
+  }
+
+  Uuid to_uuid(const wchar_t* string) {
+    return details::toUuid(string, string + std::wcslen(string));
   }
 }  // namespace urn
 

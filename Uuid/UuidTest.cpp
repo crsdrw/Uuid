@@ -112,6 +112,14 @@ void testConvertStringWithPrefix() {
   std::cout << "PASS: testConvertStringWithPrefix\n";
 }
 
+void testConvertWString() {
+  using namespace std::string_literals;
+  auto string = L"69538a3f-c07a-4be1-8705-fcc201bd673b"s;
+  auto uuid = to_uuid(string);
+  assert(uuid == expected);
+  std::cout << "PASS: testConvertWString\n";
+}
+
 void testGenerateAndHash() {
   std::unordered_set<Uuid> generated;
 
@@ -143,6 +151,7 @@ int main(int argc, char* argv[]) {
   testConvertStringNoDash();
   testConvertStringBraced();
   testConvertStringWithPrefix();
+  testConvertWString();
 
   if (argc > 1) {
     std::string option = argv[1];
