@@ -45,8 +45,3 @@ To parse a UUID from a string
 auto uuid_string = std::string{"69538a3f-c07a-4be1-8705-fcc201bd673b"};
 auto uuid = urn::to_uuid(uuid_string);
 ```
-
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details

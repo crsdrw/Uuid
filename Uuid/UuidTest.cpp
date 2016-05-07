@@ -1,3 +1,5 @@
+// Copyright (C) 2016 by Chris Drew
+//
 #include "Uuid.h"
 
 #include <cassert>
