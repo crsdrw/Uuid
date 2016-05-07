@@ -7,7 +7,6 @@
 // Easily convertible to boost uuid.
 
 #pragma once
-#define _SCL_SECURE_NO_WARNINGS
 
 #include <array>
 #include <random>
@@ -69,30 +68,44 @@ namespace details {
     return static_cast<std::size_t>(hash);
   }
 
-  const char* urn_prefix = "urn:uuid:";
-  const std::size_t urn_prefix_size = 9;
+  template<typename Char>
+  struct HexChars;
+
+  template<>
+  struct HexChars<char> {
+    static std::string lower() {
+      return std::string{"0123456789abcdef"};
+    }
+    static const std::string upper() {
+      return std::string{"ABCDEF"};
+    }
+  };
+
+  template<>
+  struct HexChars<wchar_t> {
+    static std::wstring lower() {
+      return std::wstring{ L"0123456789abcdef" };
+    }
+    static const std::wstring upper() {
+      return std::wstring{ L"ABCDEF" };
+    }
+  };
 
   template<typename Char>
   uint8_t hexCharToInt(Char c) {
-    switch (c) {
-    case '0': return 0;
-    case '1': return 1;
-    case '2': return 2;
-    case '3': return 3;
-    case '4': return 4;
-    case '5': return 5;
-    case '6': return 6;
-    case '7': return 7;
-    case '8': return 8;
-    case '9': return 9;
-    case 'a': case 'A': return 10;
-    case 'b': case 'B': return 11;
-    case 'c': case 'C': return 12;
-    case 'd': case 'D': return 13;
-    case 'e': case 'E': return 14;
-    case 'f': case 'F': return 15;
-    default: throw std::invalid_argument("Error parsing UUID string");
-    }
+    const static auto lower_chars = HexChars<Char>::lower();
+
+    auto find_lower = lower_chars.find(c);
+    if (find_lower != std::string::npos)
+      return static_cast<uint8_t>(find_lower);
+
+    const static auto upper_chars = HexChars<Char>::upper();
+
+    auto find_upper = upper_chars.find(c);
+    if (find_upper != std::string::npos)
+      return static_cast<uint8_t>(find_upper + 10);
+
+    throw std::invalid_argument("Error parsing UUID string");
   }
 
   template<typename CharPtr>
@@ -109,14 +122,17 @@ namespace details {
       ++itr;
   }
 
-  template<typename CharPtr>
-  urn::Uuid toUuid(CharPtr itr, CharPtr end) {
+  const std::string urn_prefix = "urn:uuid:";
+  const int urn_prefix_size = 9;
+
+  template<typename StringItr>
+  urn::Uuid toUuid(StringItr itr, StringItr end) {
     urn::Uuid uuid;
 
     if (std::distance(itr, end) < 32)
       throw std::invalid_argument("Error parsing UUID string");
 
-    if (std::equal(itr, itr + urn_prefix_size, urn_prefix))
+    if (std::equal(itr, itr+urn_prefix_size, urn_prefix.begin(), urn_prefix.end()))
       itr += urn_prefix_size;
 
     if (*itr == '{')
@@ -175,7 +191,7 @@ namespace urn {
   }
 
   Uuid to_uuid(const std::string& string) {
-    return details::toUuid(string.data(), string.data() + string.size());
+    return details::toUuid(string.begin(), string.end());
   }
 
   Uuid to_uuid(const char* string) {
@@ -183,7 +199,7 @@ namespace urn {
   }
 
   Uuid to_uuid(const std::wstring& string) {
-    return details::toUuid(string.data(), string.data() + string.size());
+    return details::toUuid(string.begin(), string.end());
   }
 
   Uuid to_uuid(const wchar_t* string) {

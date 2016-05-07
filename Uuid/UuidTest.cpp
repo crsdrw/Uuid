@@ -2,6 +2,7 @@
 //
 #include "Uuid.h"
 
+#undef NDEBUG
 #include <cassert>
 #include <iostream>
 #include <unordered_set>
@@ -40,7 +41,7 @@ template<> void testHash<4>() {
   Uuid uuid = {0};
   using std::hash;
   auto h = hash<Uuid>{}(uuid);
-  assert(h == 0 && "Hash of zero Uuid not zero");
+  assert(h == 1768495365 && "Hash of zero Uuid not zero");
   std::cout << "PASS: testHash\n";
 }
 
@@ -49,7 +50,7 @@ template<> void testHash<8>() {
   using std::hash;
   auto h = hash<Uuid>{}(uuid);
   assert(h == 0x88201fb960ff6465 && "Hash of zero Uuid not zero");
-  std::cout << "PASS: testNonEquality\n";
+  std::cout << "PASS: testHash\n";
 }
 
 void testGenerate() {
