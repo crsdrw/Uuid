@@ -183,6 +183,7 @@ namespace details {
   template<typename String>
   String toString(const urn::Uuid& uuid) {
     using Char = typename String::value_type;
+    const static auto dash = HexChars<Char>::dash();
     auto string = String(36, Char());
 
     auto itr = string.begin();
@@ -191,16 +192,16 @@ namespace details {
     fillCharPair(itr, uuid[1]);
     fillCharPair(itr, uuid[2]);
     fillCharPair(itr, uuid[3]);
-    *itr++ = HexChars<Char>::dash();
+    *itr++ = dash;
     fillCharPair(itr, uuid[4]);
     fillCharPair(itr, uuid[5]);
-    *itr++ = HexChars<Char>::dash();
+    *itr++ = dash;
     fillCharPair(itr, uuid[6]);
     fillCharPair(itr, uuid[7]);
-    *itr++ = HexChars<Char>::dash();
+    *itr++ = dash;
     fillCharPair(itr, uuid[8]);
     fillCharPair(itr, uuid[9]);
-    *itr++ = HexChars<Char>::dash();
+    *itr++ = dash;
     for (urn::Uuid::size_type i = 10; i != 16; ++i)
       fillCharPair(itr, uuid[i]);
 
