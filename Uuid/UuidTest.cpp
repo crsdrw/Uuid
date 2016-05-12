@@ -66,64 +66,91 @@ void testGenerateUsingGenerator() {
   std::cout << "PASS: testGenerate\n";
 }
 
-auto expected = Uuid{ 0x69, 0x53, 0x8a, 0x3f, 0xc0, 0x7a, 0x4b, 0xe1, 0x87, 0x05, 0xfc, 0xc2, 0x01, 0xbd, 0x67, 0x3b };
+auto test_uuid = Uuid{ 0x69, 0x53, 0x8a, 0x3f, 0xc0, 0x7a, 0x4b, 0xe1, 0x87, 0x05, 0xfc, 0xc2, 0x01, 0xbd, 0x67, 0x3b };
 
 void testConvertCString() {
   auto string = "69538a3f-c07a-4be1-8705-fcc201bd673b";
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertCString\n";
 }
 
 void testConvertString() {
   using namespace std::string_literals;
   auto string = "69538a3f-c07a-4be1-8705-fcc201bd673b"s;
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertString\n";
 }
 
 void testConvertStringNoDash() {
   using namespace std::string_literals;
   auto string = "69538a3fc07a4be18705fcc201bd673b"s;
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertStringNoDash\n";
 }
 
 void testConvertStringBraced() {
   using namespace std::string_literals;
   auto string = "{69538a3f-c07a-4be1-8705-fcc201bd673b}"s;
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertStringBraced\n";
 }
 
 void testConvertStringBracedNoDash() {
   using namespace std::string_literals;
   auto string = "{69538a3fc07a4be18705fcc201bd673b}"s;
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertStringBracedNoDash\n";
 }
 
 void testConvertStringWithPrefix() {
   using namespace std::string_literals;
   auto string = "urn:uuid:69538a3f-c07a-4be1-8705-fcc201bd673b"s;
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertStringWithPrefix\n";
 }
 
 void testConvertWString() {
   using namespace std::string_literals;
   auto string = L"69538a3f-c07a-4be1-8705-fcc201bd673b"s;
-  auto uuid = to_uuid(string);
-  assert(uuid == expected);
+  auto uuid = toUuid(string);
+  assert(uuid == test_uuid);
   std::cout << "PASS: testConvertWString\n";
 }
 
-void testGenerateAndHash() {
+void testConvertToString() {
+  using namespace std::string_literals;
+  auto string = toString(test_uuid);
+  assert(string == "69538a3f-c07a-4be1-8705-fcc201bd673b"s);
+  std::cout << "PASS: testConvertToString\n";
+}
+
+void testConvertToWString() {
+  using namespace std::string_literals;
+  auto string = toWString(test_uuid);
+  assert(string == L"69538a3f-c07a-4be1-8705-fcc201bd673b"s);
+  std::cout << "PASS: testConvertToWString\n";
+}
+
+void testGeneratePerformance() {
+  std::size_t sum = 0;
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i != 10'000'000; ++i) {
+    auto uuid = newUuid();
+    sum += uuid[15];
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<float> dur = end - start;
+  std::cout << "sum: " << sum << "\n";
+  std::cout << "PASS: testGenerate in " << dur.count() << "\n";
+}
+
+void testGenerateAndHashPerformance() {
   std::unordered_set<Uuid> generated;
 
   auto start = std::chrono::high_resolution_clock::now();
@@ -137,10 +164,26 @@ void testGenerateAndHash() {
   std::cout << "PASS: testGenerateAndHash in " << dur.count() << "\n";
 }
 
+void testGenerateAndRoundTripViaString() {
+  auto start = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i != 10'000'000; ++i) {
+    auto uuid = newUuid();
+    auto string = toString(uuid);
+    auto uuid_result = toUuid(string);
+    if (uuid != uuid_result)
+      throw std::runtime_error("Error uuids don't match!");
+  }
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<float> dur = end - start;
+  std::cout << "PASS: testGenerate in " << dur.count() << "\n";
+}
+
 void runPerformanceTests() {
   std::cout << "Press any key to start performance tests...\n";
   std::cin.ignore();
-  testGenerateAndHash();
+  testGeneratePerformance();
+  testGenerateAndHashPerformance();
+  testGenerateAndRoundTripViaString();
 }
 
 int main(int argc, char* argv[]) {
@@ -155,6 +198,8 @@ int main(int argc, char* argv[]) {
   testConvertStringBraced();
   testConvertStringWithPrefix();
   testConvertWString();
+  testConvertToString();
+  testConvertToWString();
 
   if (argc > 1) {
     std::string option = argv[1];

@@ -79,6 +79,9 @@ namespace details {
     static const std::string upper() {
       return std::string{"ABCDEF"};
     }
+    static char dash() {
+      return '-';
+    }
   };
 
   template<>
@@ -88,6 +91,9 @@ namespace details {
     }
     static const std::wstring upper() {
       return std::wstring{ L"ABCDEF" };
+    }
+    static wchar_t dash() {
+      return L'-';
     }
   };
 
@@ -116,9 +122,10 @@ namespace details {
     return byte;
   }
 
-  template<typename CharPtr>
-  void skipAnyDash(CharPtr& itr) {
-    if (*itr == '-')
+  template<typename StringItr>
+  void skipAnyDash(StringItr& itr) {
+    using Char = std::iterator_traits<StringItr>::value_type;
+    if (*itr == HexChars<Char>::dash())
       ++itr;
   }
 
@@ -161,6 +168,44 @@ namespace details {
 
     return uuid;
   }
+
+  template<typename StringItr>
+  void fillCharPair(StringItr& itr, uint8_t byte) {
+    using Char = std::iterator_traits<StringItr>::value_type;
+    const static auto hex_chars = HexChars<Char>::lower();
+
+    std::size_t first_index = (byte >> 4) & 0x0F;
+    *itr++ = hex_chars[first_index];
+    std::size_t second_index = byte & 0x0F;
+    *itr++ = hex_chars[second_index];
+  }
+
+  template<typename String>
+  String toString(const urn::Uuid& uuid) {
+    using Char = typename String::value_type;
+    auto string = String(36, Char());
+
+    auto itr = string.begin();
+
+    fillCharPair(itr, uuid[0]);
+    fillCharPair(itr, uuid[1]);
+    fillCharPair(itr, uuid[2]);
+    fillCharPair(itr, uuid[3]);
+    *itr++ = HexChars<Char>::dash();
+    fillCharPair(itr, uuid[4]);
+    fillCharPair(itr, uuid[5]);
+    *itr++ = HexChars<Char>::dash();
+    fillCharPair(itr, uuid[6]);
+    fillCharPair(itr, uuid[7]);
+    *itr++ = HexChars<Char>::dash();
+    fillCharPair(itr, uuid[8]);
+    fillCharPair(itr, uuid[9]);
+    *itr++ = HexChars<Char>::dash();
+    for (urn::Uuid::size_type i = 10; i != 16; ++i)
+      fillCharPair(itr, uuid[i]);
+
+    return string;
+  }
 }  // namespace details
 
 namespace urn {
@@ -190,21 +235,31 @@ namespace urn {
     return generator();
   }
 
-  Uuid to_uuid(const std::string& string) {
+  Uuid toUuid(const std::string& string) {
     return details::toUuid(string.begin(), string.end());
   }
 
-  Uuid to_uuid(const char* string) {
+  Uuid toUuid(const char* string) {
     return details::toUuid(string, string + std::strlen(string));
   }
 
-  Uuid to_uuid(const std::wstring& string) {
+  Uuid toUuid(const std::wstring& string) {
     return details::toUuid(string.begin(), string.end());
   }
 
-  Uuid to_uuid(const wchar_t* string) {
+  Uuid toUuid(const wchar_t* string) {
     return details::toUuid(string, string + std::wcslen(string));
   }
+  
+  std::string toString(const Uuid& uuid) {
+    return details::toString<std::string>(uuid);
+  }
+
+
+  std::wstring toWString(const Uuid& uuid) {
+    return details::toString<std::wstring>(uuid);
+  }
+
 }  // namespace urn
 
 namespace std {
